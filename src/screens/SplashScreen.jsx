@@ -1,10 +1,10 @@
 import React, { useEffect } from "react";
-import { login, signup, logout } from "../utils/auth";
 import { View, Text, StyleSheet, ActivityIndicator, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import PrimaryButton from "../components/PrimaryButton";
 import { useApp } from "../utils/appState";
 
+const logoImage = require("../assets/images/logo.png");
 
 export default function SplashScreen() {
   const { completeSplash } = useApp();
@@ -21,12 +21,10 @@ export default function SplashScreen() {
     >
       {/* Centered Logo */}
       <View style={styles.logoContainer}>
-        <View style={styles.logoCircle}>
-          <Text style={styles.logoText}>C</Text>
-        </View>
-        <Text style={styles.appTitle}>Calories Counter</Text>
+        <Image source={logoImage} style={styles.logoImage} resizeMode="cover" />
+        <Text style={styles.appTitle}>Desi Track</Text>
         <Text style={styles.tagline}>
-          Track. Eat. Live Healthy.
+          Track Desi. Live Healthy.
         </Text>
       </View>
 
@@ -55,20 +53,16 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: "center",
-  },
-  logoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "rgba(255,255,255,0.3)",
     justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
   },
-  logoText: {
-    fontSize: 40,
-    fontWeight: "bold",
-    color: "#fff",
+  logoImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    alignSelf: "center",
+    marginBottom: 20,
+    borderWidth: 3,
+    borderColor: "rgba(255,255,255,0.8)",
   },
   appTitle: {
     fontSize: 36,
@@ -84,6 +78,7 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 30,
+    marginBottom: 30,
   },
   button: {
     marginTop: 40,

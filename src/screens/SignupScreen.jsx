@@ -87,7 +87,7 @@ export default function SignupScreen({ navigation }) {
             disabled={loading}
           />
           <PrimaryButton
-            title="I already have an account"
+            title="Already have an account? Login"
             variant="ghost"
             onPress={() => navigation.navigate("Login")}
             className="mt-3"

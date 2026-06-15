@@ -57,6 +57,36 @@ export async function addMeal(foodData) {
   return res.json();
 }
 
+// Update meal
+export async function updateMeal(mealId, foodData) {
+  const payload = foodData?.date ? { ...foodData, date: toApiDateString(foodData.date) } : foodData;
+
+  const res = await apiFetch(`/meals/${mealId}/`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error(await readApiError(res, "Failed to update meal"));
+  }
+
+  return res.json();
+}
+
+// Delete meal
+export async function deleteMeal(mealId) {
+  const numericMealId = Number(mealId);
+  if (!Number.isInteger(numericMealId) || numericMealId <= 0) {
+    throw new Error("Invalid meal id");
+  }
+
+  const res = await apiFetch(`/meals/${numericMealId}/`, { method: "DELETE" });
+  if (!res.ok) {
+    throw new Error(await readApiError(res, "Failed to delete meal"));
+  }
+
+  return true;
+}
+
 // Dashboard (goal, calories, water)
 export async function fetchDashboard(date) {
   const res = await apiFetch(`/dashboard/?date=${toApiDateString(date)}`, { method: "GET" });

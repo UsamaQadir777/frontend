@@ -53,6 +53,7 @@ export default function AppNavigator() {
   const [profile, setProfile] = useState(defaultProfile);
   const [meals, setMeals] = useState(dummyMeals);
   const [themeMode, setThemeMode] = useState("light");
+  const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
 
   const isDark = themeMode === "dark";
 
@@ -130,6 +131,7 @@ export default function AppNavigator() {
       meals,
       themeMode,
       isDark,
+      dashboardRefreshKey,
       completeSplash: () => {
         console.log("[AppNavigator] completeSplash");
         setSplashDone(true);
@@ -162,13 +164,14 @@ export default function AppNavigator() {
           )
         );
       },
+      requestDashboardRefresh: () => setDashboardRefreshKey((key) => key + 1),
       toggleTheme: () => setThemeMode((mode) => (mode === "light" ? "dark" : "light")),
       logout: async () => {
         await logoutApi();
         clearSession();
       }
     }),
-    [isDark, meals, profile, themeMode]
+    [dashboardRefreshKey, isDark, meals, profile, themeMode]
   );
 
   return (

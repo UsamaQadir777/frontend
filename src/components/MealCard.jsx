@@ -1,4 +1,4 @@
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 import colors from "../constants/colors";
@@ -6,7 +6,7 @@ import { calculateMealTotals } from "../utils/calorieCalculator";
 import { formatCalories, formatMacro } from "../utils/formatters";
 import ClayCard from "./ClayCard";
 
-export default function MealCard({ meal, dark = false }) {
+export default function MealCard({ meal, dark = false, onDeleteFood, onEditFood }) {
   const totals = calculateMealTotals(meal.foods);
 
   return (
@@ -49,6 +49,26 @@ export default function MealCard({ meal, dark = false }) {
             <Text className={`mt-3 text-xs ${dark ? "text-white/55" : "text-cocoa"}`}>
               P {formatMacro(food.protein)} • C {formatMacro(food.carbs)} • F {formatMacro(food.fat)}
             </Text>
+            <View className="mt-4 flex-row gap-2">
+              <Pressable
+                onPress={() => onEditFood?.(food)}
+                className="h-10 flex-1 flex-row items-center justify-center rounded-full"
+                style={{ backgroundColor: dark ? "rgba(255,255,255,0.08)" : "#E4F0DB" }}
+              >
+                <Ionicons name="pencil-outline" size={17} color={dark ? "#FFFFFF" : colors.primaryDark} />
+                <Text className={`ml-2 text-xs font-black ${dark ? "text-white" : "text-leaf-700"}`}>Edit</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => onDeleteFood?.(food)}
+                className="h-10 flex-1 flex-row items-center justify-center rounded-full"
+                style={{ backgroundColor: `${colors.coral}22` }}
+              >
+                <Ionicons name="trash-outline" size={17} color={colors.coral} />
+                <Text className="ml-2 text-xs font-black" style={{ color: colors.coral }}>
+                  Delete
+                </Text>
+              </Pressable>
+            </View>
           </View>
         ))}
       </View>

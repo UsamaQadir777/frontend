@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -27,7 +27,10 @@ function CalorieRing({ achieved, goal, dark = false }) {
   const strokeWidth = 13;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const progress = Math.min(1, achieved / goal);
+  const safeGoal = Number(goal) || 0;
+  const safeAchieved = Number(achieved) || 0;
+  const progress = safeGoal ? Math.min(1, safeAchieved / safeGoal) : 0;
+  const ringColor = safeGoal > 0 && safeAchieved > safeGoal ? colors.coral : colors.primary;
 
   return (
     <View className="items-center justify-center">
@@ -44,7 +47,7 @@ function CalorieRing({ achieved, goal, dark = false }) {
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={colors.primary}
+          stroke={ringColor}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={`${circumference} ${circumference}`}
@@ -63,20 +66,36 @@ function CalorieRing({ achieved, goal, dark = false }) {
 }
 
 export default function HomeScreen() {
-  const { profile, meals, isDark } = useApp();
+  const { profile, meals, isDark, dashboardRefreshKey } = useApp();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [waterGlasses, setWaterGlasses] = useState(0);
   const [waterSummary, setWaterSummary] = useState(null);
   const [dashboardSummary, setDashboardSummary] = useState(null);
 
+  const loadDashboard = useCallback(async () => {
+    const data = await fetchDashboard(toApiDateString(selectedDate));
+    const nextWaterSummary = data?.water ?? (data?.amount_ml !== undefined ? data : null);
+
+    setDashboardSummary(data);
+
+    if (nextWaterSummary) {
+      setWaterSummary(nextWaterSummary);
+      setWaterGlasses(Math.round((Number(nextWaterSummary.amount_ml) || 0) / 250));
+    }
+  }, [selectedDate]);
+
   const handleWaterSubmit = async () => {
     const amountMl = waterGlasses * 250;
     try {
       const res = await updateWater(toApiDateString(selectedDate), amountMl);
-      const nextAmountMl = Number(res.amount_ml ?? amountMl);
+      const nextWaterSummary = res?.water ?? res;
+      const nextAmountMl = Number(nextWaterSummary?.amount_ml ?? amountMl);
 
-      setWaterSummary(res);
+      setWaterSummary(nextWaterSummary);
       setWaterGlasses(Math.round(nextAmountMl / 250));
+      loadDashboard().catch((error) => {
+        console.error("[HomeScreen] waterDashboardRefresh:error", error);
+      });
       Alert.alert("Water intake updated", `${nextAmountMl}ml logged`);
     } catch (error) {
       Alert.alert("Water update failed", "Please try again.");
@@ -85,34 +104,17 @@ export default function HomeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      let mounted = true;
-
-      const loadDashboard = async () => {
-        try {
-          const data = await fetchDashboard(toApiDateString(selectedDate));
-          const nextWaterSummary = data?.water ?? (data?.amount_ml !== undefined ? data : null);
-
-          if (mounted) {
-            setDashboardSummary(data);
-          }
-
-          if (nextWaterSummary) {
-            if (mounted) {
-              setWaterSummary(nextWaterSummary);
-              setWaterGlasses(Math.round((Number(nextWaterSummary.amount_ml) || 0) / 250));
-            }
-          }
-        } catch (error) {
-          console.error("[HomeScreen] fetchDashboard:error", error);
-        }
-      };
-
-      loadDashboard();
-      return () => {
-        mounted = false;
-      };
-    }, [selectedDate])
+      loadDashboard().catch((error) => {
+        console.error("[HomeScreen] fetchDashboard:error", error);
+      });
+    }, [loadDashboard])
   );
+
+  useEffect(() => {
+    loadDashboard().catch((error) => {
+      console.error("[HomeScreen] dashboardRefresh:error", error);
+    });
+  }, [dashboardRefreshKey, loadDashboard]);
 
   const totals = useMemo(() => dashboardSummary?.consumed ?? calculateDayTotals(meals), [dashboardSummary, meals]);
   const targets = dashboardSummary?.daily_goal ?? profile.targets;
@@ -135,6 +137,8 @@ export default function HomeScreen() {
   const waterProgressPercent = Number(
     waterSummary?.progress_percent ?? (waterGoalMl ? Math.min(100, Math.round((waterAmountMl / waterGoalMl) * 100)) : 0)
   );
+  const waterProgressWidth = `${Math.max(0, Math.min(100, waterProgressPercent))}%`;
+  const waterAmountGlasses = waterGlasses;
   const waterGoalGlasses = Math.max(1, Math.round(waterGoalMl / 250));
 
   return (
@@ -167,11 +171,14 @@ export default function HomeScreen() {
             <View className={`flex-1 rounded-[22px] p-4 ${isDark ? "bg-white/5" : "bg-sage-50"}`}>
               <Text className={`text-xs font-bold ${isDark ? "text-white/55" : "text-cocoa"}`}>Water</Text>
               <Text className={`mt-2 text-lg font-black ${isDark ? "text-white" : "text-ink"}`}>
-                {waterGlasses} / {waterGoalGlasses} cups
+                {waterAmountGlasses} / {waterGoalGlasses} cups
               </Text>
               <Text className={`mt-1 text-xs font-semibold ${isDark ? "text-white/55" : "text-cocoa"}`}>
                 {waterAmountMl}ml logged, {waterRemainingMl}ml left
               </Text>
+              <View className={`mt-3 h-2 overflow-hidden rounded-full ${isDark ? "bg-white/10" : "bg-sage-100"}`}>
+                <View className="h-2 rounded-full" style={{ width: waterProgressWidth, backgroundColor: colors.primary }} />
+              </View>
               <View className="mt-3 flex-row items-center gap-2">
                 <Pressable
                   onPress={() => setWaterGlasses((count) => Math.max(0, count - 1))}

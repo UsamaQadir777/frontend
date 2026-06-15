@@ -12,11 +12,38 @@ import { useApp } from "../utils/appState";
 import { fetchProgress } from "../utils/meals";
 import { formatCalories, formatDateKey, formatMacro, toApiDateString } from "../utils/formatters";
 
+const underGoalColor = "#F5C542";
+const withinGoalColor = "#4CAF50";
+const exceededGoalColor = "#E53935";
+
 const macroColors = [
   { key: "protein", label: "Protein", color: colors.protein, caloriesPerGram: 4 },
   { key: "carbs", label: "Carbs", color: colors.carbs, caloriesPerGram: 4 },
   { key: "fat", label: "Fat", color: colors.fat, caloriesPerGram: 9 }
 ];
+
+const getWeekStart = (date) => {
+  const nextDate = new Date(date);
+  const day = nextDate.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  nextDate.setDate(nextDate.getDate() + mondayOffset);
+  return nextDate;
+};
+
+const createWeekDays = (weekStart) =>
+  Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + index);
+    return date;
+  });
+
+const getEntryKey = (entry) => toApiDateString(entry.date);
+
+const getBarColor = (calories, goal) => {
+  if (!goal || calories < goal * 0.5) return underGoalColor;
+  if (calories <= goal) return withinGoalColor;
+  return exceededGoalColor;
+};
 
 function MacroDonut({ progress, dark = false }) {
   const size = 178;
@@ -75,14 +102,15 @@ export default function ProgressScreen() {
   const { profile, isDark } = useApp();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [progressEntries, setProgressEntries] = useState(dummyProgress);
+  const dailyCalorieGoal = Number(profile.daily_calorie_goal ?? profile.dailyCalorieGoal ?? profile.targets.calories) || 0;
+  const weekStart = useMemo(() => getWeekStart(selectedDate), [selectedDate]);
+  const weekDays = useMemo(() => createWeekDays(weekStart), [weekStart]);
 
   useFocusEffect(
     useCallback(() => {
       let mounted = true;
-      const end = toApiDateString(selectedDate);
-      const startDate = new Date(selectedDate);
-      startDate.setDate(selectedDate.getDate() - 6);
-      const start = toApiDateString(startDate);
+      const start = toApiDateString(weekDays[0]);
+      const end = toApiDateString(weekDays[6]);
 
       const loadProgress = async () => {
         try {
@@ -96,8 +124,7 @@ export default function ProgressScreen() {
                 calories: Number(entry.calories || 0),
                 protein: Number(entry.protein || 0),
                 carbs: Number(entry.carbs || 0),
-                fat: Number(entry.fat || 0),
-                weightKg: profile.weightKg
+                fat: Number(entry.fat || 0)
               }))
             );
           }
@@ -110,7 +137,7 @@ export default function ProgressScreen() {
       return () => {
         mounted = false;
       };
-    }, [profile.weightKg, selectedDate])
+    }, [weekDays])
   );
 
   const selectedKey = formatDateKey(selectedDate);
@@ -118,12 +145,27 @@ export default function ProgressScreen() {
     () => progressEntries.find((entry) => entry.date === selectedKey) || progressEntries[progressEntries.length - 1],
     [progressEntries, selectedKey]
   );
-  const maxCalories = Math.max(...progressEntries.map((entry) => entry.calories), profile.targets.calories);
+  const weeklyProgress = useMemo(() => {
+    const entriesByDate = new Map(progressEntries.map((entry) => [getEntryKey(entry), entry]));
+
+    return weekDays.map((date) => {
+      const key = toApiDateString(date);
+      const entry = entriesByDate.get(key);
+
+      return {
+        date: key,
+        calories: Number(entry?.calories || 0),
+        protein: Number(entry?.protein || 0),
+        carbs: Number(entry?.carbs || 0),
+        fat: Number(entry?.fat || 0)
+      };
+    });
+  }, [progressEntries, weekDays]);
 
   return (
     <View className={`flex-1 ${isDark ? "bg-sage-900" : "bg-sage-50"}`}>
       <ScrollView contentContainerStyle={{ padding: 24, paddingTop: 56, paddingBottom: 122 }}>
-        <AppHeader title="Progress" subtitle="Calories, macros, and weight" dark={isDark} />
+        <AppHeader title="Progress" subtitle="Calories and macros" dark={isDark} />
         <DateSelector selectedDate={selectedDate} onChange={setSelectedDate} dark={isDark} />
 
         <ClayCard dark={isDark}>
@@ -152,20 +194,26 @@ export default function ProgressScreen() {
           <View className="mb-6 flex-row items-center justify-between">
             <Text className={`text-xl font-black ${isDark ? "text-white" : "text-ink"}`}>One week</Text>
             <Text className={`text-sm font-bold ${isDark ? "text-white/60" : "text-cocoa"}`}>
-              Goal {formatCalories(profile.targets.calories)}
+              Goal: {formatCalories(dailyCalorieGoal)}
             </Text>
           </View>
-          <View className="h-48 flex-row items-end justify-between">
-            {progressEntries.map((entry) => {
-              const height = Math.max(26, (entry.calories / maxCalories) * 170);
-              const isSelected = entry.date === selectedProgress.date;
+          <View className="h-56 flex-row items-end justify-between">
+            {weeklyProgress.map((entry) => {
+              const calories = Math.round(entry.calories);
+              const ratio = dailyCalorieGoal ? entry.calories / dailyCalorieGoal : 0;
+              const height = Math.max(entry.calories > 0 ? 24 : 8, Math.min(ratio, 1.2) * 142);
+              const barColor = getBarColor(entry.calories, dailyCalorieGoal);
+
               return (
-                <View key={entry.date} className="items-center">
+                <View key={entry.date} className="flex-1 items-center">
+                  <Text className={`mb-2 text-xs font-black ${isDark ? "text-white" : "text-ink"}`}>
+                    {calories}
+                  </Text>
                   <View
-                    className="w-8 rounded-full"
+                    className="w-8 rounded-t-2xl"
                     style={{
                       height,
-                      backgroundColor: isSelected ? colors.primary : "#CFE4C3"
+                      backgroundColor: barColor
                     }}
                   />
                   <Text className={`mt-3 text-xs font-bold ${isDark ? "text-white/60" : "text-cocoa"}`}>
@@ -175,17 +223,15 @@ export default function ProgressScreen() {
               );
             })}
           </View>
-        </ClayCard>
-
-        <ClayCard className="mt-5" dark={isDark}>
-          <Text className={`mb-4 text-xl font-black ${isDark ? "text-white" : "text-ink"}`}>Weight trend</Text>
-          <View className="flex-row items-end justify-between">
-            {progressEntries.map((entry) => (
-              <View key={entry.date} className="items-center">
-                <Text className={`mb-2 text-xs font-bold ${isDark ? "text-white/60" : "text-cocoa"}`}>
-                  {entry.weightKg}
-                </Text>
-                <View className="h-3 w-3 rounded-full bg-leaf-500" />
+          <View className="mt-5 gap-2">
+            {[
+              ["🟡", "Yellow = Under goal"],
+              ["🟢", "Green = Within goal"],
+              ["🔴", "Red = Exceeded goal"]
+            ].map(([icon, label]) => (
+              <View key={label} className="flex-row items-center">
+                <Text className="mr-2 text-base">{icon}</Text>
+                <Text className={`text-xs font-bold ${isDark ? "text-white/60" : "text-cocoa"}`}>{label}</Text>
               </View>
             ))}
           </View>

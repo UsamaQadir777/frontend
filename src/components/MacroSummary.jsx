@@ -16,6 +16,7 @@ export default function MacroSummary({ totals, targets, compact = false, dark = 
         const value = totals?.[macro.key] ?? 0;
         const target = targets?.[macro.key] ?? 1;
         const width = formatPercent(value, target);
+        const barColor = Number(value) > Number(target) ? colors.coral : macro.color;
 
         return (
           <View key={macro.key}>
@@ -28,7 +29,7 @@ export default function MacroSummary({ totals, targets, compact = false, dark = 
               </Text>
             </View>
             <View className={`h-3 overflow-hidden rounded-full ${dark ? "bg-white/10" : "bg-sage-100"}`}>
-              <View className="h-3 rounded-full" style={{ width, backgroundColor: macro.color }} />
+              <View className="h-3 rounded-full" style={{ width, backgroundColor: barColor }} />
             </View>
           </View>
         );

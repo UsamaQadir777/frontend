@@ -71,9 +71,8 @@ export default function LoginScreen({ navigation }) {
             disabled={loading}
           />
           <PrimaryButton
-            title="Create Account"
-            variant="soft"
-            icon="person-add-outline"
+            title="Don't have an account? Sign Up"
+            variant="ghost"
             onPress={() => navigation.navigate("Signup")}
             className="mt-3"
           />
