@@ -3,6 +3,7 @@ import { Alert, KeyboardAvoidingView, Platform, Text, TextInput, View } from "re
 import { LinearGradient } from "expo-linear-gradient";
 
 import ClayCard from "../components/ClayCard";
+import DistrictPicker from "../components/DistrictPicker";
 import PrimaryButton from "../components/PrimaryButton";
 import { useApp } from "../utils/appState";
 import { login, signup } from "../utils/auth";
@@ -12,12 +13,13 @@ export default function SignupScreen({ navigation }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [district, setDistrict] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
     setLoading(true);
     try {
-      const signupData = await signup({ email, password, name });
+      const signupData = await signup({ email, password, name, ...(district ? { district } : {}) });
 
       if (signupData.detail || signupData.error) {
         Alert.alert("Signup failed", signupData.detail || signupData.error);
@@ -79,6 +81,11 @@ export default function SignupScreen({ navigation }) {
             className="mb-6 h-14 rounded-3xl bg-sage-50 px-5 text-base text-ink"
             placeholderTextColor="#A09689"
           />
+
+          <Text className="mb-2 text-sm font-bold text-cocoa">District</Text>
+          <View className="mb-6">
+            <DistrictPicker value={district} onChange={(value) => setDistrict(value || "")} allowClear />
+          </View>
 
           <PrimaryButton
             title={loading ? "Creating Account" : "Sign Up"}

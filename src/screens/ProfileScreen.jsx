@@ -259,6 +259,7 @@ export default function ProfileScreen() {
           {!editing ? (
             <View>
               <ProfileRow icon="person-outline" label="Gender" value={profile.gender} dark={isDark} />
+              <ProfileRow icon="location-outline" label="District:" value={profile.district || "Not set"} dark={isDark} />
               <ProfileRow icon="calendar-outline" label="Age" value={`${profile.age} years`} dark={isDark} />
               <ProfileRow icon="resize-outline" label="Height" value={displayHeight} dark={isDark} />
               <ProfileRow icon="barbell-outline" label="Weight" value={`${profile.weightKg} kg`} dark={isDark} />

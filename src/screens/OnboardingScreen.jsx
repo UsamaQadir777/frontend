@@ -12,12 +12,6 @@ import { useApp } from "../utils/appState";
 
 const steps = [
   {
-    key: "name",
-    title: "What is your name?",
-    placeholder: "Your Name",
-    keyboardType: "default"
-  },
-  {
     key: "weightKg",
     title: "Your Current Weight",
     placeholder: "Enter Your Current Weight",
@@ -44,7 +38,6 @@ const steps = [
 ];
 
 const initialForm = {
-  name: "",
   goal: "maintenance",
   age: "",
   gender: "Female",
@@ -162,7 +155,6 @@ export default function OnboardingScreen() {
 
   const normalizedProfile = useMemo(
     () => ({
-      name: form.name.trim() || "Friend",
       goal: form.goal,
       age: Number.isFinite(Number(form.age)) ? Number(form.age) : 22,
       gender: form.gender,

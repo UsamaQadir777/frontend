@@ -77,6 +77,7 @@ export function normalizeProfileFromApi(data = {}, userData = {}) {
   return {
     name: profileData.name || user.name || user.username || "Friend",
     email: profileData.email || user.email || "",
+    district: profileData.district || "",
     goal: profileChoicesFromApi.goal(profileData.goal),
     age: Number(profileData.age) || 22,
     gender: profileChoicesFromApi.gender(profileData.gender),
@@ -90,6 +91,7 @@ export function normalizeProfileFromApi(data = {}, userData = {}) {
 export function toProfilePayload(profile = {}) {
   return {
     ...(profile.name !== undefined ? { name: profile.name } : {}),
+    ...(profile.district !== undefined ? { district: profile.district || null } : {}),
     ...(profile.goal !== undefined ? { goal: profileChoicesToApi.goal(profile.goal) } : {}),
     ...(profile.age !== undefined ? { age: profile.age } : {}),
     ...(profile.gender !== undefined ? { gender: profileChoicesToApi.gender(profile.gender) } : {}),

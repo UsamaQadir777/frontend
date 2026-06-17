@@ -23,6 +23,7 @@ const Stack = createNativeStackNavigator();
 
 const defaultProfile = mergeProfileWithTargets({
   name: "Hadia",
+  district: "",
   goal: "lose weight",
   age: 22,
   gender: "Female",
